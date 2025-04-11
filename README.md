@@ -5,7 +5,7 @@
 SolidPilot is an open-source AI Assistant for SolidWorks. Its architecture is modular, version-aware, and designed to work with local language models like Claude through the MCP (Model Context Protocol).
 
 ### 🧩 Architecture Overview
-![mermaid-diagram-2025-04-11-182423](https://github.com/user-attachments/assets/d839cce3-05d5-4bb7-afce-7f9caa950be7)
+![mermaid-diagram-2025-04-11-182739](https://github.com/user-attachments/assets/50269ad7-0b31-4c1b-943e-14e146ab82eb)
 
 The assistant is composed of:
 - A **Claude UI** interface
