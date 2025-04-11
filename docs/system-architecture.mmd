@@ -1,35 +1,44 @@
-graph TD
-    User[👤 User] -->|Prompts & Commands| ClaudeUI["☁️ Claude UI"]
-    User -->|Interacts with| SolidWorks["🔧 SOLIDWORKS"]
-    
-    ClaudeUI -->|Sends Prompts| MCPHost["🧠 MCP Host"]
-    
-    subgraph PythonLayer["Python Layer"]
-        MCPHost -->|Processes Requests| ContextBuilder["📊 Context Builder"]
-        ContextBuilder -->|Generates| PromptTemplate["📝 Prompt Template"]
-        PromptTemplate -->|Feeds to| MCPHost
-        MCPHost -->|Uses| VersionManager["🔄 Version Manager"]
+flowchart TD
+    classDef user color:aqua;
+    classDef claude color:orange;
+    classDef mcphost color:red;
+    classDef solidworks color:chartreuse;
+
+    Start(("👤 USER")):::user
+    ClaudeUI("☁️ Claude UI"):::claude
+    MCPHost("🧠 MCP Host"):::mcphost
+    SolidWorks("🔧 SOLIDWORKS"):::solidworks
+
+    Start -->|"Prompts & Commands"| ClaudeUI
+    Start -->|"Interacts with"| SolidWorks
+    ClaudeUI -->|"Sends Prompts"| MCPHost
+
+    subgraph PythonLayer["💻 Python Layer"]
+        MCPHost -->|"Processes Requests"| ContextBuilder["📊 Context Builder"]
+        ContextBuilder -->|"Generates"| PromptTemplate["📝 Prompt Template"]
+        PromptTemplate -->|"Feeds to"| MCPHost
+        MCPHost -->|"Uses"| VersionManager["🔄 Version Manager"]
     end
-    
-    subgraph AdapterLayer["Adapter Layer"]
-        VersionManager -->|Loads Appropriate| AdapterDLLs["📚 Adapter DLLs"]
-        AdapterDLLs -->|Contains| SW2021["DLL 2021"]
-        AdapterDLLs -->|Contains| SW2022["DLL 2022"]
-        AdapterDLLs -->|Contains| SW2023["DLL 2023"]
-        AdapterDLLs -->|Contains| SW2024["DLL 2024"]
-        AdapterDLLs -->|Contains| SW2025["DLL 2025"]
+
+    subgraph AdapterLayer["🧩 Adapter Layer"]
+        VersionManager -->|"Loads Appropriate"| AdapterDLLs{"📚 Adapter DLLs"}
+        AdapterDLLs --> SW2021["🧱 DLL 2021"]
+        AdapterDLLs --> SW2022["🧱 DLL 2022"]
+        AdapterDLLs --> SW2023["🧱 DLL 2023"]
+        AdapterDLLs --> SW2024["🧱 DLL 2024"]
+        AdapterDLLs --> SW2025["🧱 DLL 2025"]
     end
-    
-    subgraph APICommunication["API Communication"]
-        AdapterDLLs -->|PythonNET| CSharpAPI["🔌 C# API"]
-        CSharpAPI -->|COM Interface| SolidWorks
+
+    subgraph APICommunication["🔄 API Communication"]
+        AdapterDLLs -->|"PythonNET"| CSharpAPI["🔌 C# API"]
+        CSharpAPI -->|"COM Interface"| SolidWorks
     end
-    
-    SolidWorks -->|Events & Model Data| EventCapture["📡 Event Capture"]
-    EventCapture -->|Selection Events| ActionQueue["⏱️ Action Queue"]
-    ActionQueue -->|Focus Elements & History| ContextBuilder
-    
-    SolidWorks -->|Model Structure| ModelData["🗂️ Model Data"]
-    ModelData -->|Features, Dimensions, etc.| ContextBuilder
-    
-    MCPHost -->|Response| ClaudeUI
+
+    SolidWorks -->|"Events & Model Data"| EventCapture["📡 Event Capture"]
+    EventCapture -->|"Selection Events"| ActionQueue["⏱️ Action Queue"]
+    ActionQueue -->|"Focus Elements & History"| ContextBuilder
+
+    SolidWorks -->|"Model Structure"| ModelData["🗂️ Model Data"]
+    ModelData -->|"Features, Dimensions, etc."| ContextBuilder
+
+    MCPHost -->|"Response"| ClaudeUI
