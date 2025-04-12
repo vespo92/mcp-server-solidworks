@@ -21,16 +21,16 @@ flowchart TD
     end
 
     subgraph AdapterLayer["🧩 Adapter Layer"]
-        VersionManager -->|"Loads Appropriate"| AdapterDLLs{"📚 Adapter DLLs"}
-        AdapterDLLs --> SW2021["🧱 DLL 2021"]
-        AdapterDLLs --> SW2022["🧱 DLL 2022"]
-        AdapterDLLs --> SW2023["🧱 DLL 2023"]
-        AdapterDLLs --> SW2024["🧱 DLL 2024"]
-        AdapterDLLs --> SW2025["🧱 DLL 2025"]
+        VersionManager -->|"Loads Appropriate"| Adapter{"📚 Adapter"}
+        Adapter --> SW2021["🧱 2021 API DOC"]
+        Adapter --> SW2022["🧱 2022 API DOC"]
+        Adapter --> SW2023["🧱 2023 API DOC"]
+        Adapter --> SW2024["🧱 2024 API DOC"]
+        Adapter --> SW2025["🧱 2025 API DOC"]
     end
 
     subgraph APICommunication["🔄 API Communication"]
-        AdapterDLLs -->|"PythonNET"| CSharpAPI["🔌 C# API"]
+        Adapter -->|"PythonNET"| CSharpAPI["🔌 C# API"]
         CSharpAPI -->|"COM Interface"| SolidWorks
     end
 
