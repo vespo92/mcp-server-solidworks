@@ -35,6 +35,8 @@ services:
     depends_on:
       chromadb:
         condition: service_healthy
+    ports:
+      - "5858:5858"  # MCP stdio port for Claude Desktop
     volumes:
       # Source code (for development with hot reload)
       - ./src:/app/src
@@ -60,9 +62,6 @@ services:
         source: ${SOLIDWORKS_TEMPLATES_PATH:-C:/SolidWorks/Templates}
         target: /solidworks/templates
         
-      # Named pipe for Windows COM communication (if needed)
-      # - //./pipe/solidworks:/var/run/solidworks
-      
     environment:
       # ChromaDB Configuration
       - CHROMA_HOST=chromadb
@@ -71,7 +70,6 @@ services:
       
       # MCP Server Configuration
       - MCP_LOG_LEVEL=${MCP_LOG_LEVEL:-INFO}
-      - MCP_SERVER_PORT=${MCP_SERVER_PORT:-3000}
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
       
@@ -96,11 +94,6 @@ services:
     tty: true
     command: ["python", "-m", "src.mcp_host.server"]
     restart: unless-stopped
-    
-    # Windows-specific settings for COM interop
-    # Uncomment if running on Windows with Docker Desktop
-    # platform: windows/amd64
-    # isolation: process
 
   # Development Tools Container
   dev-tools:
@@ -149,19 +142,6 @@ services:
       --allow-root 
       --NotebookApp.token='' 
       --NotebookApp.password=''
-
-  # Optional: pgAdmin for database inspection (if using PostgreSQL later)
-  # pgadmin:
-  #   image: dpage/pgadmin4:latest
-  #   container_name: solidworks-mcp-pgadmin
-  #   profiles: ["debug"]
-  #   ports:
-  #     - "5050:80"
-  #   environment:
-  #     - PGADMIN_DEFAULT_EMAIL=admin@solidworks.local
-  #     - PGADMIN_DEFAULT_PASSWORD=admin
-  #   networks:
-  #     - solidworks-mcp-network
 
 networks:
   solidworks-mcp-network:

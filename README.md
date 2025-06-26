@@ -35,52 +35,13 @@ A comprehensive Model Context Protocol (MCP) server that bridges SolidWorks CAD 
 - 💡 **Design Optimization**: AI-assisted optimization suggestions
 - 🎯 **Variant Generation**: Automated creation of design variants
 
-## 🏗️ Architecture
-
-```mermaid
-graph TB
-    A[Claude/AI Assistant] --> B[MCP Protocol]
-    B --> C[Python MCP Server]
-    C --> D[Context Builder]
-    C --> E[Tool Executor]
-    C --> F[Event Manager]
-    E --> G[PythonNET Bridge]
-    G --> H[C# Adapters]
-    H --> I[SolidWorks API]
-    D --> J[ChromaDB Knowledge Base]
-    F --> J
-```
-
-### Key Components
-
-1. **MCP Server** (`src/mcp_host/server.py`)
-   - Implements the Model Context Protocol
-   - Handles tool execution and prompt generation
-   - Manages resource discovery
-
-2. **C# Adapters** (`src/solidworks_adapters/`)
-   - Version-specific implementations (2021-2025)
-   - Direct COM interface to SolidWorks
-   - Async/await support via PythonNET
-
-3. **Knowledge Base** (`src/context_builder/knowledge_base.py`)
-   - ChromaDB for semantic search
-   - Stores operations, patterns, errors, and solutions
-   - Enables learning from past actions
-
-4. **Event System** (`src/events/event_manager.py`)
-   - Real-time event capture
-   - Event-driven automation
-   - Comprehensive logging
-
 ## 📋 Prerequisites
 
 - **SolidWorks** 2021-2025 (licensed installation)
 - **Docker Desktop** (required)
-- **.NET Framework** 4.8 or higher
 - **Windows OS** (SolidWorks requirement)
 
-## 🛠️ Quick Start with Docker
+## 🛠️ Quick Start
 
 ### 1. Clone the Repository
 ```bash
@@ -89,221 +50,165 @@ cd mcp-server-solidworks
 ```
 
 ### 2. Configure Environment
-Copy `.env.example` to `.env` and update paths:
+Copy `.env.example` to `.env` and update your SolidWorks paths:
 ```bash
 cp .env.example .env
-# Edit .env with your SolidWorks paths
+# Edit .env with your paths
 ```
 
 ### 3. Start Services
 ```bash
-# Build and start all services
-make up
-
-# Or using docker-compose directly
+# Start all services
 docker-compose up -d
+
+# Verify services are running
+docker-compose ps
 ```
 
-This will start:
-- **MCP Server** - The main SolidWorks integration server
-- **ChromaDB** - Knowledge base on port 8057
+### 4. Configure Claude Desktop
 
-### 4. Verify Installation
-```bash
-# Check service status
-make status
+Add to your Claude Desktop configuration file:
 
-# View logs
-make logs
-
-# Run installation tests
-make test-install
-```
-
-## 🚀 Usage
-
-### Configure Claude Desktop
-
-Add to `claude_desktop_config.json`:
+**Windows** (`%APPDATA%\Claude\claude_desktop_config.json`):
 ```json
 {
   "mcpServers": {
     "solidworks": {
-      "command": "docker",
-      "args": ["compose", "exec", "-T", "mcp-server", "python", "-m", "src.mcp_host.server"],
-      "cwd": "C:/path/to/mcp-server-solidworks"
+      "command": "C:\\path\\to\\mcp-server-solidworks\\mcp-server-solidworks.bat"
     }
   }
 }
 ```
 
+**macOS/Linux** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "solidworks": {
+      "command": "/path/to/mcp-server-solidworks/mcp-server-solidworks.sh"
+    }
+  }
+}
+```
+
+That's it! The wrapper script automatically ensures Docker services are running and connects Claude to the MCP server.
+
+## 🚀 Usage
+
 ### Docker Commands
 
 ```bash
 # Start services
-make up
+docker-compose up -d
 
 # Stop services
-make down
+docker-compose down
 
 # View logs
-make logs
+docker-compose logs -f
 
-# Open shell in container
-make shell
+# Restart services
+docker-compose restart
 
-# Run tests
-make test
+# Check status
+docker-compose ps
+```
 
-# Start Jupyter notebook
-make jupyter
+### Using Make (Optional)
 
-# Clean everything
-make clean
+If you have Make installed:
+```bash
+make up      # Start services
+make down    # Stop services
+make logs    # View logs
+make shell   # Open shell in container
+make test    # Run tests
 ```
 
 ## 💻 Usage Examples
 
+Once configured, you can ask Claude to:
+
 ### Basic Operations
 
-```python
-# Open a model
-await mcp.call_tool("open_model", {
-    "file_path": "C:/Models/bracket.sldprt"
-})
+"Open the bracket model at C:/Models/bracket.sldprt"
 
-# Modify a dimension
-await mcp.call_tool("modify_dimension", {
-    "feature_name": "Boss-Extrude1",
-    "dimension_name": "D1@Boss-Extrude1",
-    "value": 25.0
-})
+"Change the Boss-Extrude1 depth to 25mm"
 
-# Update design table
-await mcp.call_tool("update_design_table", {
-    "table_name": "Design Table",
-    "configuration": "Large",
-    "values": {
-        "Length": 150,
-        "Width": 100,
-        "Thickness": 10
-    }
-})
+"Update the design table Large configuration with Length=150, Width=100"
 
-# Export model
-await mcp.call_tool("export_model", {
-    "output_path": "C:/Exports/bracket.step",
-    "format": "STEP"
-})
-```
+"Export the current model as STEP to C:/Exports/"
 
 ### AI-Powered Analysis
 
-```python
-# Analyze model
-response = await mcp.get_prompt("analyze_model", {
-    "file_path": "C:/Models/complex_assembly.sldasm"
-})
+"Analyze this assembly and suggest weight reduction opportunities"
 
-# Optimize design
-response = await mcp.get_prompt("optimize_design", {
-    "optimization_goal": "reduce weight while maintaining strength"
-})
+"Generate 5 variants of this part with different hole patterns"
 
-# Generate variants
-response = await mcp.get_prompt("create_variants", {
-    "parameters": ["length", "hole_count", "thickness"],
-    "count": 5
-})
-```
+"What are the potential manufacturing issues with this design?"
 
-### VBA Macro Integration
+### VBA Automation
 
-```python
-# Run a simple macro
-await mcp.call_tool("run_macro", {
-    "macro_path": "C:/Macros/CreateDrawing.swp",
-    "macro_name": "main"
-})
+"Run the CreateDrawing macro"
 
-# Run macro with parameters
-await mcp.call_tool("run_macro", {
-    "macro_path": "C:/Macros/BatchProcess.swp",
-    "parameters": {
-        "operation": "add_watermark",
-        "text": "CONFIDENTIAL"
-    }
-})
-```
+"Execute the batch processing macro with watermark text 'CONFIDENTIAL'"
 
 ## 🐳 Docker Architecture
 
-The project uses Docker Compose with multiple services:
+The project uses Docker Compose with two main services:
 
-### Core Services (always running)
-- **mcp-server**: Main Python MCP server with all dependencies
-- **chromadb**: Vector database for knowledge storage (port 8057)
+1. **mcp-server**: Python MCP server with all dependencies
+2. **chromadb**: Vector database on port 8057 for knowledge storage
 
-### Development Services (on-demand)
-- **dev-tools**: Development container with build tools
-- **jupyter**: Jupyter Lab for interactive development (port 8888)
-
-### Key Features:
-- ✅ **No Python venv needed** - Everything runs in containers
-- ✅ **Hot reload** - Code changes reflected immediately
-- ✅ **Isolated dependencies** - No system pollution
-- ✅ **Consistent environment** - Same setup for everyone
-- ✅ **Easy cleanup** - One command removes everything
+Optional development services:
+- **dev-tools**: Development container (use `--profile dev`)
+- **jupyter**: Jupyter Lab on port 8888 (use `--profile jupyter`)
 
 ## 🧪 Development
 
 ### Development Workflow
 
 ```bash
-# Start development environment
-make dev
+# Open shell in container
+docker-compose exec mcp-server bash
 
-# Run tests with coverage
-docker-compose exec mcp-server pytest tests/ --cov
+# Run tests
+docker-compose exec mcp-server pytest tests/
 
 # Format code
 docker-compose exec mcp-server black src/
 
-# Lint code
-docker-compose exec mcp-server ruff check src/
-
-# Build C# adapters
-make build-adapters
+# Start Jupyter notebook
+docker-compose --profile jupyter up -d jupyter
 ```
 
-### Jupyter Notebooks
+### Building C# Adapters
 
 ```bash
-# Start Jupyter Lab
-make jupyter
-
-# Access at http://localhost:8888 (no password)
+docker-compose exec mcp-server python scripts/build_adapters.py
 ```
 
-## 📊 Knowledge Base Management
+## 📊 Knowledge Base
 
-### Initialize Knowledge Base
-```bash
-make init-knowledge
-```
+The ChromaDB knowledge base learns from every operation:
 
-### Export Knowledge
-```bash
-make export-knowledge
-# Exports to ./data/knowledge_export.json
-```
-
-### Import Knowledge
+### View Knowledge Statistics
 ```bash
 docker-compose exec mcp-server python -c "
 from src.context_builder.knowledge_base import SolidWorksKnowledgeBase
 kb = SolidWorksKnowledgeBase()
-kb.import_knowledge('/app/data/knowledge_export.json')
+stats = kb.analyze_operation_patterns()
+print(f'Total operations: {stats[\"total_operations\"]}')
+print(f'Success rate: {stats[\"success_rate\"]:.1%}')
+"
+```
+
+### Export Knowledge
+```bash
+docker-compose exec mcp-server python -c "
+from src.context_builder.knowledge_base import SolidWorksKnowledgeBase
+kb = SolidWorksKnowledgeBase()
+kb.export_knowledge('/app/data/knowledge_export.json')
 "
 ```
 
@@ -311,65 +216,58 @@ kb.import_knowledge('/app/data/knowledge_export.json')
 
 ### Environment Variables
 
+Key settings in `.env`:
+
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `SOLIDWORKS_PATH` | SolidWorks installation path | `C:/Program Files/SOLIDWORKS Corp/SOLIDWORKS` |
-| `SOLIDWORKS_VERSION` | Default SW version | `2024` |
+| `SOLIDWORKS_PATH` | SolidWorks installation | `C:/Program Files/SOLIDWORKS Corp/SOLIDWORKS` |
+| `SOLIDWORKS_VERSION` | Default version | `2024` |
 | `SOLIDWORKS_MODELS_PATH` | Models directory | `C:/SolidWorks/Models` |
 | `SOLIDWORKS_MACROS_PATH` | Macros directory | `C:/SolidWorks/Macros` |
-| `CHROMA_PORT` | ChromaDB port | `8057` |
-| `MCP_LOG_LEVEL` | Logging level | `INFO` |
 
-### Volume Mounts
+### Ports
 
-The Docker setup automatically mounts:
-- Source code for hot reload
-- SolidWorks model/macro directories
-- Data and log directories
-- ChromaDB persistent storage
+- **8057**: ChromaDB (vector database)
+- **8888**: Jupyter Lab (optional, development)
 
 ## 🐛 Troubleshooting
 
 ### Common Issues
 
 1. **"Cannot connect to Docker"**
-   ```bash
-   # Ensure Docker Desktop is running
-   # On Windows, check Docker is set to Linux containers
-   ```
+   - Ensure Docker Desktop is running
+   - On Windows, verify Docker is using Linux containers
 
-2. **"SolidWorks not found"**
-   ```bash
-   # Update paths in .env file
-   # Ensure paths use forward slashes: C:/SolidWorks
-   ```
+2. **"SolidWorks paths not found"**
+   - Update paths in `.env` file
+   - Use forward slashes: `C:/SolidWorks/Models`
 
-3. **"ChromaDB connection failed"**
+3. **"Port already in use"**
    ```bash
-   # Check port 8057 is free
-   lsof -i :8057  # Linux/Mac
+   # Find process using port 8057
    netstat -an | findstr 8057  # Windows
+   lsof -i :8057              # macOS/Linux
    ```
 
-4. **"Permission denied"**
+4. **View detailed logs**
    ```bash
-   # Reset permissions
-   docker-compose down
-   sudo chown -R $USER:$USER .
-   docker-compose up -d
+   docker-compose logs -f mcp-server
+   docker-compose logs -f chromadb
    ```
 
-### View Detailed Logs
-```bash
-# All services
-make logs
+## 🏗️ Architecture
 
-# Specific service
-make logs-mcp-server
-make logs-chromadb
-
-# Follow logs
-make logs-f
+```mermaid
+graph TB
+    A[Claude Desktop] --> B[Wrapper Script]
+    B --> C[Docker Compose]
+    C --> D[MCP Server Container]
+    C --> E[ChromaDB Container]
+    D --> F[Python MCP Server]
+    F --> G[PythonNET Bridge]
+    G --> H[C# Adapters]
+    H --> I[SolidWorks API]
+    F --> E
 ```
 
 ## 📄 License
