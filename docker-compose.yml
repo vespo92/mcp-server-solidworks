@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: solidworks-mcp-chromadb
+    ports:
+      - "8057:8000"  # Using port 8057 to avoid conflicts
+    volumes:
+      - ./chroma_data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - PERSIST_DIRECTORY=/chroma/chroma
+      - ANONYMIZED_TELEMETRY=FALSE
+      - ALLOW_RESET=TRUE
+    networks:
+      - solidworks-mcp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: solidworks-mcp-server
+    depends_on:
+      chromadb:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - /var/run/docker.sock:/var/run/docker.sock  # For Docker-in-Docker if needed
+      # Mount Windows paths for SolidWorks access (adjust as needed)
+      - type: bind
+        source: ${SOLIDWORKS_MODELS_PATH:-C:/SolidWorks/Models}
+        target: /solidworks/models
+      - type: bind
+        source: ${SOLIDWORKS_MACROS_PATH:-C:/SolidWorks/Macros}
+        target: /solidworks/macros
+    environment:
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - MCP_LOG_LEVEL=${MCP_LOG_LEVEL:-INFO}
+      - SOLIDWORKS_PATH=${SOLIDWORKS_PATH:-C:/Program Files/SOLIDWORKS Corp/SOLIDWORKS}
+      - PYTHONUNBUFFERED=1
+    networks:
+      - solidworks-mcp-network
+    stdin_open: true
+    tty: true
+    command: ["python", "-m", "src.mcp_host.server"]
+
+  # Optional: Jupyter notebook for interactive development
+  jupyter:
+    build:
+      context: .
+      dockerfile: Dockerfile.jupyter
+    container_name: solidworks-mcp-jupyter
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./:/app
+      - ./notebooks:/app/notebooks
+    environment:
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+    networks:
+      - solidworks-mcp-network
+    command: ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root", "--NotebookApp.token=''"]
+
+networks:
+  solidworks-mcp-network:
+    driver: bridge
+
+volumes:
+  chroma_data:
+    driver: local

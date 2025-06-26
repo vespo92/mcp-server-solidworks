@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <PlatformTarget>x64</PlatformTarget>
+    <OutputType>Library</OutputType>
+    <AssemblyName>SolidWorksAdapters</AssemblyName>
+    <RootNamespace>MCP.SolidWorks.Adapters</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- SolidWorks Interop References -->
+    <Reference Include="SolidWorks.Interop.sldworks">
+      <HintPath>references\SolidWorks.Interop.sldworks.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="SolidWorks.Interop.swconst">
+      <HintPath>references\SolidWorks.Interop.swconst.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="SolidWorks.Interop.swpublished">
+      <HintPath>references\SolidWorks.Interop.swpublished.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
+    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+  </ItemGroup>
+
+  <!-- Copy output to version-specific folders -->
+  <Target Name="CopyToVersionFolders" AfterTargets="Build">
+    <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" 
+          DestinationFiles="sw2021\SolidWorksAdapter2021.dll" />
+    <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" 
+          DestinationFiles="sw2022\SolidWorksAdapter2022.dll" />
+    <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" 
+          DestinationFiles="sw2023\SolidWorksAdapter2023.dll" />
+    <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" 
+          DestinationFiles="sw2024\SolidWorksAdapter2024.dll" />
+    <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" 
+          DestinationFiles="sw2025\SolidWorksAdapter2025.dll" />
+  </Target>
+
+</Project>
