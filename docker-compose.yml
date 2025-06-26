@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # ChromaDB Vector Database for Knowledge Storage
   chromadb:
     image: chromadb/chroma:latest
     container_name: solidworks-mcp-chromadb
@@ -21,61 +22,156 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    restart: unless-stopped
 
+  # SolidWorks MCP Server
   mcp-server:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - PYTHON_VERSION=3.11
     container_name: solidworks-mcp-server
     depends_on:
       chromadb:
         condition: service_healthy
     volumes:
+      # Source code (for development with hot reload)
       - ./src:/app/src
+      - ./examples:/app/examples
+      - ./scripts:/app/scripts
+      
+      # Data and logs
       - ./data:/app/data
       - ./logs:/app/logs
-      - /var/run/docker.sock:/var/run/docker.sock  # For Docker-in-Docker if needed
-      # Mount Windows paths for SolidWorks access (adjust as needed)
+      
+      # C# Adapters and references
+      - ./src/solidworks_adapters:/app/src/solidworks_adapters
+      
+      # Windows host mounts for SolidWorks access
+      # Note: Update these paths based on your system
       - type: bind
         source: ${SOLIDWORKS_MODELS_PATH:-C:/SolidWorks/Models}
         target: /solidworks/models
       - type: bind
         source: ${SOLIDWORKS_MACROS_PATH:-C:/SolidWorks/Macros}
         target: /solidworks/macros
+      - type: bind
+        source: ${SOLIDWORKS_TEMPLATES_PATH:-C:/SolidWorks/Templates}
+        target: /solidworks/templates
+        
+      # Named pipe for Windows COM communication (if needed)
+      # - //./pipe/solidworks:/var/run/solidworks
+      
     environment:
+      # ChromaDB Configuration
       - CHROMA_HOST=chromadb
       - CHROMA_PORT=8000
+      - CHROMA_PERSIST_DIRECTORY=/app/chroma_db
+      
+      # MCP Server Configuration
       - MCP_LOG_LEVEL=${MCP_LOG_LEVEL:-INFO}
-      - SOLIDWORKS_PATH=${SOLIDWORKS_PATH:-C:/Program Files/SOLIDWORKS Corp/SOLIDWORKS}
+      - MCP_SERVER_PORT=${MCP_SERVER_PORT:-3000}
       - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      
+      # SolidWorks Configuration
+      - SOLIDWORKS_PATH=${SOLIDWORKS_PATH:-C:/Program Files/SOLIDWORKS Corp/SOLIDWORKS}
+      - SOLIDWORKS_VERSION=${SOLIDWORKS_VERSION:-2024}
+      
+      # Feature Flags
+      - ENABLE_CHROMADB=${ENABLE_CHROMADB:-true}
+      - ENABLE_EVENT_CAPTURE=${ENABLE_EVENT_CAPTURE:-true}
+      - ENABLE_PERFORMANCE_METRICS=${ENABLE_PERFORMANCE_METRICS:-true}
+      - ENABLE_AUTO_SAVE=${ENABLE_AUTO_SAVE:-false}
+      - SANDBOX_VBA_EXECUTION=${SANDBOX_VBA_EXECUTION:-true}
+      
+      # Development Mode
+      - RELOAD_ON_CHANGE=${RELOAD_ON_CHANGE:-true}
+      - DEBUG=${DEBUG:-false}
+      
     networks:
       - solidworks-mcp-network
     stdin_open: true
     tty: true
     command: ["python", "-m", "src.mcp_host.server"]
+    restart: unless-stopped
+    
+    # Windows-specific settings for COM interop
+    # Uncomment if running on Windows with Docker Desktop
+    # platform: windows/amd64
+    # isolation: process
 
-  # Optional: Jupyter notebook for interactive development
+  # Development Tools Container
+  dev-tools:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: solidworks-mcp-devtools
+    profiles: ["dev"]  # Only runs when explicitly requested
+    depends_on:
+      - chromadb
+    volumes:
+      - ./:/app
+      - solidworks_mcp_pip_cache:/root/.cache/pip
+    environment:
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+    networks:
+      - solidworks-mcp-network
+    command: ["tail", "-f", "/dev/null"]  # Keep container running
+
+  # Jupyter Notebook for Interactive Development
   jupyter:
     build:
       context: .
       dockerfile: Dockerfile.jupyter
     container_name: solidworks-mcp-jupyter
+    profiles: ["jupyter"]  # Only runs when explicitly requested
     ports:
       - "8888:8888"
+    depends_on:
+      - chromadb
     volumes:
       - ./:/app
       - ./notebooks:/app/notebooks
     environment:
       - CHROMA_HOST=chromadb
       - CHROMA_PORT=8000
+      - JUPYTER_ENABLE_LAB=yes
     networks:
       - solidworks-mcp-network
-    command: ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root", "--NotebookApp.token=''"]
+    command: >
+      jupyter lab 
+      --ip=0.0.0.0 
+      --port=8888 
+      --no-browser 
+      --allow-root 
+      --NotebookApp.token='' 
+      --NotebookApp.password=''
+
+  # Optional: pgAdmin for database inspection (if using PostgreSQL later)
+  # pgadmin:
+  #   image: dpage/pgadmin4:latest
+  #   container_name: solidworks-mcp-pgadmin
+  #   profiles: ["debug"]
+  #   ports:
+  #     - "5050:80"
+  #   environment:
+  #     - PGADMIN_DEFAULT_EMAIL=admin@solidworks.local
+  #     - PGADMIN_DEFAULT_PASSWORD=admin
+  #   networks:
+  #     - solidworks-mcp-network
 
 networks:
   solidworks-mcp-network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
 
 volumes:
   chroma_data:
+    driver: local
+  solidworks_mcp_pip_cache:
     driver: local

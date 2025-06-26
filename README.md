@@ -76,12 +76,11 @@ graph TB
 ## 📋 Prerequisites
 
 - **SolidWorks** 2021-2025 (licensed installation)
-- **Python** 3.9 or higher
+- **Docker Desktop** (required)
 - **.NET Framework** 4.8 or higher
-- **Docker** (optional, for ChromaDB)
 - **Windows OS** (SolidWorks requirement)
 
-## 🛠️ Installation
+## 🛠️ Quick Start with Docker
 
 ### 1. Clone the Repository
 ```bash
@@ -89,49 +88,39 @@ git clone https://github.com/yourusername/mcp-server-solidworks.git
 cd mcp-server-solidworks
 ```
 
-### 2. Set Up Python Environment
+### 2. Configure Environment
+Copy `.env.example` to `.env` and update paths:
 ```bash
-python -m venv venv
-venv\Scripts\activate  # On Windows
-pip install -e .
+cp .env.example .env
+# Edit .env with your SolidWorks paths
 ```
 
-### 3. Configure Environment
-Copy `.env.example` to `.env` and update:
-```env
-SOLIDWORKS_PATH=C:/Program Files/SOLIDWORKS Corp/SOLIDWORKS
-SOLIDWORKS_VERSION=2024
-CHROMA_PORT=8057
-```
-
-### 4. Build C# Adapters
+### 3. Start Services
 ```bash
-python scripts/build_adapters.py
+# Build and start all services
+make up
+
+# Or using docker-compose directly
+docker-compose up -d
 ```
 
-### 5. Start ChromaDB (Optional but Recommended)
+This will start:
+- **MCP Server** - The main SolidWorks integration server
+- **ChromaDB** - Knowledge base on port 8057
+
+### 4. Verify Installation
 ```bash
-docker-compose up -d chromadb
+# Check service status
+make status
+
+# View logs
+make logs
+
+# Run installation tests
+make test-install
 ```
 
-### 6. Verify Installation
-```bash
-python scripts/test_installation.py
-```
-
-## 🚀 Quick Start
-
-### Starting the Server
-
-#### Standalone Mode
-```bash
-python -m src.mcp_host.server
-```
-
-#### With Docker
-```bash
-docker-compose up
-```
+## 🚀 Usage
 
 ### Configure Claude Desktop
 
@@ -140,12 +129,37 @@ Add to `claude_desktop_config.json`:
 {
   "mcpServers": {
     "solidworks": {
-      "command": "python",
-      "args": ["-m", "src.mcp_host.server"],
+      "command": "docker",
+      "args": ["compose", "exec", "-T", "mcp-server", "python", "-m", "src.mcp_host.server"],
       "cwd": "C:/path/to/mcp-server-solidworks"
     }
   }
 }
+```
+
+### Docker Commands
+
+```bash
+# Start services
+make up
+
+# Stop services
+make down
+
+# View logs
+make logs
+
+# Open shell in container
+make shell
+
+# Run tests
+make test
+
+# Start Jupyter notebook
+make jupyter
+
+# Clean everything
+make clean
 ```
 
 ## 💻 Usage Examples
@@ -222,41 +236,76 @@ await mcp.call_tool("run_macro", {
 })
 ```
 
-## 🧪 Testing
+## 🐳 Docker Architecture
 
-Run the test suite:
+The project uses Docker Compose with multiple services:
+
+### Core Services (always running)
+- **mcp-server**: Main Python MCP server with all dependencies
+- **chromadb**: Vector database for knowledge storage (port 8057)
+
+### Development Services (on-demand)
+- **dev-tools**: Development container with build tools
+- **jupyter**: Jupyter Lab for interactive development (port 8888)
+
+### Key Features:
+- ✅ **No Python venv needed** - Everything runs in containers
+- ✅ **Hot reload** - Code changes reflected immediately
+- ✅ **Isolated dependencies** - No system pollution
+- ✅ **Consistent environment** - Same setup for everyone
+- ✅ **Easy cleanup** - One command removes everything
+
+## 🧪 Development
+
+### Development Workflow
+
 ```bash
-pytest tests/ -v
+# Start development environment
+make dev
+
+# Run tests with coverage
+docker-compose exec mcp-server pytest tests/ --cov
+
+# Format code
+docker-compose exec mcp-server black src/
+
+# Lint code
+docker-compose exec mcp-server ruff check src/
+
+# Build C# adapters
+make build-adapters
 ```
 
-Run specific tests:
-```bash
-pytest tests/test_server.py::TestMCPServer -v
-```
-
-## 🐳 Docker Support
-
-The project includes full Docker support with ChromaDB integration:
+### Jupyter Notebooks
 
 ```bash
-# Start all services
-docker-compose up
+# Start Jupyter Lab
+make jupyter
 
-# Start only ChromaDB
-docker-compose up chromadb
-
-# View logs
-docker-compose logs -f mcp-server
+# Access at http://localhost:8888 (no password)
 ```
 
-ChromaDB runs on port **8057** to avoid conflicts with other instances.
+## 📊 Knowledge Base Management
 
-## 📚 Documentation
+### Initialize Knowledge Base
+```bash
+make init-knowledge
+```
 
-- [Installation Guide](INSTALLATION.md) - Detailed setup instructions
-- [API Reference](docs/API.md) - Complete tool documentation
-- [Contributing Guide](CONTRIBUTING.md) - How to contribute
-- [Examples](examples/) - Usage examples and patterns
+### Export Knowledge
+```bash
+make export-knowledge
+# Exports to ./data/knowledge_export.json
+```
+
+### Import Knowledge
+```bash
+docker-compose exec mcp-server python -c "
+from src.context_builder.knowledge_base import SolidWorksKnowledgeBase
+kb = SolidWorksKnowledgeBase()
+kb.import_knowledge('/app/data/knowledge_export.json')
+"
+```
 
 ## 🔧 Configuration
 
@@ -266,63 +315,62 @@ ChromaDB runs on port **8057** to avoid conflicts with other instances.
 |----------|-------------|---------|
 | `SOLIDWORKS_PATH` | SolidWorks installation path | `C:/Program Files/SOLIDWORKS Corp/SOLIDWORKS` |
 | `SOLIDWORKS_VERSION` | Default SW version | `2024` |
+| `SOLIDWORKS_MODELS_PATH` | Models directory | `C:/SolidWorks/Models` |
+| `SOLIDWORKS_MACROS_PATH` | Macros directory | `C:/SolidWorks/Macros` |
 | `CHROMA_PORT` | ChromaDB port | `8057` |
 | `MCP_LOG_LEVEL` | Logging level | `INFO` |
-| `ENABLE_CHROMADB` | Enable knowledge base | `true` |
 
-### Feature Flags
+### Volume Mounts
 
-Control features via `.env`:
-- `ENABLE_EVENT_CAPTURE` - Real-time event monitoring
-- `ENABLE_PERFORMANCE_METRICS` - Performance tracking
-- `ENABLE_AUTO_SAVE` - Automatic model saving
-- `SANDBOX_VBA_EXECUTION` - Sandbox VBA macros
-
-## 🤝 Contributing
-
-We welcome contributions! Areas of interest:
-
-- ✨ New SolidWorks operations
-- 🧠 Improved AI prompts and context
-- 🧪 Additional test coverage
-- 🔧 Performance optimizations
-- 📚 Documentation improvements
-- 🌍 Multi-language support
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-## 🔒 Security
-
-- All file operations are sandboxed
-- VBA macro execution can be restricted
-- API authentication support
-- Audit logging for compliance
-
-## 📊 Performance
-
-- Async operations throughout
-- Connection pooling for ChromaDB
-- Intelligent caching of model data
-- Batch operations support
-- Event debouncing
+The Docker setup automatically mounts:
+- Source code for hot reload
+- SolidWorks model/macro directories
+- Data and log directories
+- ChromaDB persistent storage
 
 ## 🐛 Troubleshooting
 
 ### Common Issues
 
-1. **"SolidWorks not found"**
-   - Ensure SolidWorks is installed
-   - Set `SOLIDWORKS_PATH` environment variable
+1. **"Cannot connect to Docker"**
+   ```bash
+   # Ensure Docker Desktop is running
+   # On Windows, check Docker is set to Linux containers
+   ```
 
-2. **"C# adapter build failed"**
-   - Install .NET SDK
-   - Copy SolidWorks API DLLs to `references/`
+2. **"SolidWorks not found"**
+   ```bash
+   # Update paths in .env file
+   # Ensure paths use forward slashes: C:/SolidWorks
+   ```
 
 3. **"ChromaDB connection failed"**
-   - Ensure Docker is running
-   - Check port 8057 is available
+   ```bash
+   # Check port 8057 is free
+   lsof -i :8057  # Linux/Mac
+   netstat -an | findstr 8057  # Windows
+   ```
 
-See [Troubleshooting Guide](docs/TROUBLESHOOTING.md) for more.
+4. **"Permission denied"**
+   ```bash
+   # Reset permissions
+   docker-compose down
+   sudo chown -R $USER:$USER .
+   docker-compose up -d
+   ```
+
+### View Detailed Logs
+```bash
+# All services
+make logs
+
+# Specific service
+make logs-mcp-server
+make logs-chromadb
+
+# Follow logs
+make logs-f
+```
 
 ## 📄 License
 
@@ -339,7 +387,6 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) file.
 
 - **Issues**: [GitHub Issues](https://github.com/yourusername/mcp-server-solidworks/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/yourusername/mcp-server-solidworks/discussions)
-- **Email**: support@example.com
 
 ---
 

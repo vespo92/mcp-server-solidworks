@@ -1,0 +1,65 @@
+# Development container with additional tools
+ARG PYTHON_VERSION=3.11
+FROM python:${PYTHON_VERSION}
+
+# Install development dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    git \
+    vim \
+    nano \
+    htop \
+    wget \
+    # .NET SDK for building C# adapters
+    apt-transport-https \
+    software-properties-common \
+    # Additional dev tools
+    iputils-ping \
+    net-tools \
+    procps \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install .NET SDK (not just runtime)
+RUN wget https://packages.microsoft.com/config/debian/11/packages-microsoft-prod.deb -O packages-microsoft-prod.deb \
+    && dpkg -i packages-microsoft-prod.deb \
+    && rm packages-microsoft-prod.deb \
+    && apt-get update \
+    && apt-get install -y dotnet-sdk-6.0 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy project files
+COPY pyproject.toml ./
+COPY README.md ./
+
+# Install all dependencies including dev dependencies
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
+    && pip install --no-cache-dir -e ".[dev]"
+
+# Install additional development tools
+RUN pip install --no-cache-dir \
+    ipython \
+    ipdb \
+    pytest-cov \
+    pytest-watch \
+    pytest-xdist \
+    flake8 \
+    autopep8 \
+    pylint \
+    bandit \
+    safety
+
+# Set environment variables
+ENV PYTHONPATH=/app \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 \
+    DOTNET_RUNNING_IN_CONTAINER=true
+
+# Create directories
+RUN mkdir -p /app/data /app/logs /app/chroma_db /app/temp /app/exports
+
+# Default to bash
+CMD ["/bin/bash"]
