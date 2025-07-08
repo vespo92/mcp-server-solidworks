@@ -1,11 +1,9 @@
 @echo off
-REM Simple wrapper script for Claude Desktop to connect to the MCP server
+REM Windows launcher for SolidWorks MCP Server
+REM This runs the server directly without Docker
 
-REM Change to the project directory
+REM Change to the directory where this script is located
 cd /d "%~dp0"
 
-REM Ensure services are running
-docker-compose up -d >nul 2>&1
-
-REM Connect to the MCP server stdio
-docker-compose exec -T mcp-server python -m mcp_server_solidworks.mcp_host.server
+REM Run the Python module directly
+python -m mcp_server_solidworks.mcp_host.server %*

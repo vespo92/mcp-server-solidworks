@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "solidworks": {
+      "command": "python3",
+      "args": ["-m", "mcp_server_solidworks.mcp_host.server"],
+      "cwd": "/path/to/mcp-server-solidworks",
+      "env": {
+        "PYTHONPATH": "/path/to/mcp-server-solidworks"
+      }
+    }
+  }
+}

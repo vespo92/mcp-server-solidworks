@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "solidworks": {
+      "command": "/path/to/mcp-server-solidworks/mcp-server-solidworks"
+    }
+  }
+}

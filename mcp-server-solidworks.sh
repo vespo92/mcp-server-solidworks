@@ -1,11 +1,12 @@
 #!/bin/bash
-# Simple wrapper script for Claude Desktop to connect to the MCP server
+# Unix/macOS launcher for SolidWorks MCP Server
+# This runs the server directly without Docker
 
-# Change to the project directory
-cd "$(dirname "$0")"
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
-# Ensure services are running
-docker-compose up -d >/dev/null 2>&1
+# Change to the script directory
+cd "$SCRIPT_DIR"
 
-# Connect to the MCP server stdio
-docker-compose exec -T mcp-server python -m mcp_server_solidworks.mcp_host.server
+# Run the Python module directly
+exec python3 -m mcp_server_solidworks.mcp_host.server "$@"
