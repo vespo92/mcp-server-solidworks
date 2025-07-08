@@ -39,7 +39,7 @@ services:
       - "5858:5858"  # MCP stdio port for Claude Desktop
     volumes:
       # Source code (for development with hot reload)
-      - ./src:/app/src
+      - ./mcp_server_solidworks:/app/mcp_server_solidworks
       - ./examples:/app/examples
       - ./scripts:/app/scripts
       
@@ -48,7 +48,7 @@ services:
       - ./logs:/app/logs
       
       # C# Adapters and references
-      - ./src/solidworks_adapters:/app/src/solidworks_adapters
+      - ./mcp_server_solidworks/solidworks_adapters:/app/mcp_server_solidworks/solidworks_adapters
       
       # Windows host mounts for SolidWorks access
       # Note: Update these paths based on your system
@@ -92,7 +92,7 @@ services:
       - solidworks-mcp-network
     stdin_open: true
     tty: true
-    command: ["python", "-m", "src.mcp_host.server"]
+    command: ["python", "-m", "mcp_server_solidworks.mcp_host.server"]
     restart: unless-stopped
 
   # Development Tools Container

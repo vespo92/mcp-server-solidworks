@@ -92,7 +92,7 @@ EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD python -c "import sys; from src.mcp_host.server import SolidWorksMCPServer; sys.exit(0)" || exit 1
+    CMD python -c "import sys; from mcp_server_solidworks.mcp_host.server import SolidWorksMCPServer; sys.exit(0)" || exit 1
 
 # Default command
-CMD ["python", "-m", "src.mcp_host.server"]
+CMD ["python", "-m", "mcp_server_solidworks.mcp_host.server"]

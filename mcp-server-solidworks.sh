@@ -8,4 +8,4 @@ cd "$(dirname "$0")"
 docker-compose up -d >/dev/null 2>&1
 
 # Connect to the MCP server stdio
-docker-compose exec -T mcp-server python -m src.mcp_host.server
+docker-compose exec -T mcp-server python -m mcp_server_solidworks.mcp_host.server
